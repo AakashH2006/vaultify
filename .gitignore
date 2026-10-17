@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.vscode/
+.idea/
+
+# never commit real environment files
+apps/*/.env
+
+# the coursework brief, kept locally but not published
+*.pdf

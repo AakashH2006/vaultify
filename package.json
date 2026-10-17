@@ -1,0 +1,23 @@
+{
+  "name": "vaultify",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Vaultify - a zero-knowledge, web-based password manager",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "demo": "npm run demo --workspace @vaultify/crypto",
+    "dev": "npm run dev --workspace @vaultify/api",
+    "web": "npm run dev --workspace @vaultify/web",
+    "build": "npm run build --workspace @vaultify/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "smoke": "npm run smoke --workspace @vaultify/api"
+  }
+}

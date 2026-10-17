@@ -1,0 +1,10 @@
+# The client bundle's security story rests on reproducible builds: an auditor
+# rebuilds from source and compares SRI hashes against the ones shipped in the
+# import map. Line endings are part of the bytes those hashes cover, so a
+# CRLF checkout on Windows and an LF checkout elsewhere would hash the same
+# commit differently. Normalise to LF in the index *and* in the working tree
+# so the build is byte-identical on every platform.
+* text=auto eol=lf
+
+# Binary, never touched.
+*.pdf binary
