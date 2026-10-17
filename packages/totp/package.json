@@ -1,0 +1,19 @@
+{
+  "name": "@vaultify/totp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "RFC 4648 base32, RFC 6238 TOTP and recovery codes. Pure Web Crypto, runs in the browser and in Node.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3"
+  }
+}
