@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vaultify</title>
+    <meta name="description" content="A zero-knowledge password manager. Your vault is encrypted in this tab." />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="color-scheme" content="light dark" />
+
+    <!--
+      No inline script and no inline style anywhere in this file. The one
+      exception the platform forces on us is the import map below, which the
+      HTML parser requires inline; the build allows it by SHA-256 hash in the
+      CSP rather than by turning on `unsafe-inline`.
+
+      The import map also carries an SRI hash for every module in the graph, so
+      a browser that supports import-map integrity will refuse a module whose
+      bytes have been altered in transit or at rest on the server.
+    -->
+    <!--IMPORT_MAP-->
+
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4M5 11h14v10H5z'/%3E%3C/svg%3E" />
+
+    <!--ENTRY_SCRIPT-->
+  </head>
+  <body data-state="locked">
+    <div id="app">
+      <!-- Replaced on first render. Shown if scripting is unavailable. -->
+      <noscript class="card">
+        <h1>Vaultify</h1>
+        <p>
+          This application decrypts your vault in the browser, so it cannot work
+          without JavaScript. There is no server-side rendering fallback, and
+          there could not be — the server has no way to read your data.
+        </p>
+      </noscript>
+    </div>
+    <footer class="build-footer">
+      <span>Encrypted in this tab · the server never sees your master password</span>
+      <span class="build-id"><!--BUILD_ID--></span>
+    </footer>
+  </body>
+</html>

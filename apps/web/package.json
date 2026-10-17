@@ -1,0 +1,21 @@
+{
+  "name": "@vaultify/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Vaultify web client. Zero runtime dependencies; the vault is decrypted only in this tab.",
+  "scripts": {
+    "build": "node --disable-warning=ExperimentalWarning build.ts",
+    "dev": "node --disable-warning=ExperimentalWarning serve.ts",
+    "start": "node --disable-warning=ExperimentalWarning serve.ts",
+    "test": "node --disable-warning=ExperimentalWarning --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@vaultify/crypto": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3"
+  }
+}
