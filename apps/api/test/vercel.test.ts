@@ -329,4 +329,52 @@ describe("the platform configuration", () => {
     assert.equal(matched, fileURLToPath(new URL("../src/store/schema.sql", import.meta.url)));
     await readFile(matched, "utf8");
   });
+
+  /**
+   * The build command has to name a script npm will actually find.
+   *
+   * This failed a real deployment. `npm run build:vercel` resolved to the root
+   * script locally and to the api workspace on the platform, because npm takes
+   * a workspace from `npm_config_workspace` in the environment when the
+   * command line does not name one -- and that workspace has no such script.
+   * Naming it with `--workspace=` makes it command-line config, which wins.
+   */
+  it("builds with a script that exists in the workspace it names", async () => {
+    const root = new URL("../../../", import.meta.url);
+    const config = JSON.parse(
+      await readFile(fileURLToPath(new URL("vercel.json", root)), "utf8"),
+    ) as { buildCommand?: string };
+
+    const command = config.buildCommand ?? "";
+    const script = /^npm run ([\w:.-]+)/.exec(command)?.[1];
+    const workspace = /--workspace=(\S+)/.exec(command)?.[1];
+
+    assert.ok(script, `no script name in the build command: ${command}`);
+    assert.ok(
+      workspace,
+      "the build command must name its workspace explicitly, or npm resolves " +
+        "it from the environment and picks the wrong package.json",
+    );
+
+    // Find that workspace by name rather than by guessing its directory.
+    interface Manifest {
+      name: string;
+      scripts?: Record<string, string>;
+    }
+
+    const manifests = ["apps/web", "apps/api", "packages/crypto", "packages/totp"];
+    const found: Manifest[] = [];
+    for (const dir of manifests) {
+      const manifest = JSON.parse(
+        await readFile(fileURLToPath(new URL(`${dir}/package.json`, root)), "utf8"),
+      ) as Manifest;
+      if (manifest.name === workspace) found.push(manifest);
+    }
+
+    assert.equal(found.length, 1, `${workspace} is not a workspace of this repository`);
+    assert.ok(
+      found[0]?.scripts?.[script] !== undefined,
+      `${workspace} has no "${script}" script`,
+    );
+  });
 });

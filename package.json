@@ -13,12 +13,12 @@
   },
   "scripts": {
     "test": "npm run test --workspaces --if-present",
-    "demo": "npm run demo --workspace @vaultify/crypto",
-    "dev": "npm run dev --workspace @vaultify/api",
-    "web": "npm run dev --workspace @vaultify/web",
-    "build": "npm run build --workspace @vaultify/web",
-    "build:vercel": "npm run build:vercel --workspace @vaultify/web",
+    "demo": "npm run demo --workspace=@vaultify/crypto",
+    "dev": "npm run dev --workspace=@vaultify/api",
+    "web": "npm run dev --workspace=@vaultify/web",
+    "build": "npm run build --workspace=@vaultify/web",
+    "build:vercel": "npm run build:vercel --workspace=@vaultify/web",
     "typecheck": "npm run typecheck --workspaces --if-present && tsc --noEmit -p api",
-    "smoke": "npm run smoke --workspace @vaultify/api"
+    "smoke": "npm run smoke --workspace=@vaultify/api"
   }
 }

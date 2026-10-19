@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build:vercel",
+  "buildCommand": "npm run build:vercel --workspace=@vaultify/web",
   "installCommand": "npm install",
   "outputDirectory": "apps/web/dist",
   "functions": {
