@@ -311,6 +311,30 @@ function escapeHtml(value: string): string {
  * variable because the same-origin value is the empty string, and setting a
  * variable to empty differs between shells.
  */
+/**
+ * `--out-dir <path>`, resolved against the repository root.
+ *
+ * Against the root rather than the working directory on purpose: npm runs a
+ * workspace script with the cwd set to that workspace, a platform may run the
+ * same command from the repository root, and the output has to land in the
+ * same place either way. A deployment points at this path by name, and a
+ * mismatch there is not a build error -- it is a successful build whose output
+ * nobody collects.
+ */
+function outDirFromArgv(args: string[]): string | undefined {
+  const inline = args.find((arg) => arg.startsWith("--out-dir="));
+  if (inline) return resolve(repoRoot, inline.slice("--out-dir=".length));
+
+  const flag = args.indexOf("--out-dir");
+  if (flag === -1) return undefined;
+
+  const value = args[flag + 1];
+  if (!value || value.startsWith("--")) {
+    throw new Error("--out-dir needs a value, e.g. --out-dir dist");
+  }
+  return resolve(repoRoot, value);
+}
+
 function apiOriginFromArgv(args: string[]): string | undefined {
   if (args.includes("--same-origin")) return "";
 
@@ -327,10 +351,12 @@ function apiOriginFromArgv(args: string[]): string | undefined {
   return value;
 }
 
-// Run directly: `node build.ts [--same-origin | --api-origin <url>]`
+// Run directly:
+//   node build.ts [--same-origin | --api-origin <url>] [--out-dir <path>]
 if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
-  const apiOrigin = apiOriginFromArgv(process.argv.slice(2));
-  const result = await build({ apiOrigin });
+  const args = process.argv.slice(2);
+  const apiOrigin = apiOriginFromArgv(args);
+  const result = await build({ apiOrigin, outDir: outDirFromArgv(args) });
   const kb = (result.bytes / 1024).toFixed(1);
   const origin =
     apiOrigin === ""

@@ -331,6 +331,39 @@ describe("the platform configuration", () => {
   });
 
   /**
+   * The output directory the platform collects has to be the one the build
+   * writes.
+   *
+   * This failed a deployment too, and silently: the build succeeded, printed
+   * its module count, and the platform then looked somewhere else and found
+   * nothing. Both halves are declared -- `outputDirectory` here, `--out-dir`
+   * in the web workspace's build script -- so this asserts they are the same
+   * path and not merely both present.
+   */
+  it("collects the directory the build writes", async () => {
+    const root = new URL("../../../", import.meta.url);
+    const config = JSON.parse(
+      await readFile(fileURLToPath(new URL("vercel.json", root)), "utf8"),
+    ) as { outputDirectory?: string; buildCommand?: string };
+    const web = JSON.parse(
+      await readFile(fileURLToPath(new URL("apps/web/package.json", root)), "utf8"),
+    ) as { scripts?: Record<string, string> };
+
+    const script = /--workspace=\S+\s*$/.test(config.buildCommand ?? "")
+      ? /^npm run ([\w:.-]+)/.exec(config.buildCommand ?? "")?.[1]
+      : undefined;
+    assert.ok(script, "the build command must be an npm script on a named workspace");
+
+    const built = /--out-dir[= ](\S+)/.exec(web.scripts?.[script] ?? "")?.[1];
+    assert.ok(built, `apps/web's "${script}" must pass --out-dir`);
+    assert.equal(
+      config.outputDirectory,
+      built,
+      "vercel.json collects a different directory than the build writes",
+    );
+  });
+
+  /**
    * The platform must not guess what this project is.
    *
    * It guessed once: it found Express in the dependencies, decided this was a

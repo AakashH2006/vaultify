@@ -6,7 +6,7 @@
   "description": "Vaultify web client. Zero runtime dependencies; the vault is decrypted only in this tab.",
   "scripts": {
     "build": "node --disable-warning=ExperimentalWarning build.ts",
-    "build:vercel": "node --experimental-strip-types --disable-warning=ExperimentalWarning build.ts --same-origin",
+    "build:vercel": "node --experimental-strip-types --disable-warning=ExperimentalWarning build.ts --same-origin --out-dir dist",
     "dev": "node --disable-warning=ExperimentalWarning serve.ts",
     "start": "node --disable-warning=ExperimentalWarning serve.ts",
     "test": "node --disable-warning=ExperimentalWarning --test \"test/**/*.test.ts\"",

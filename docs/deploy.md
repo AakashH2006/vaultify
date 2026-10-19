@@ -4,7 +4,7 @@ One Vercel project serves both halves of Vaultify from a single domain:
 
 ```
 vaultify.vercel.app
-├── /              apps/web/dist          static files, built by `build.ts`
+├── /              dist/                  static files, built by `build.ts`
 ├── /app/*.js      the module graph       unminified, SRI-hashed
 └── /api/*         apps/api               the Express app, as one function
 ```
@@ -24,7 +24,7 @@ still exercised by its tests; it simply has nothing to allow in this shape.
 | `api/index.ts` | The three lines Vercel's file-based routing needs. Vercel turns every file under `api/` into a function, so the logic lives elsewhere. |
 | `apps/api/src/vercel.ts` | The adapter: one app per instance, platform defaults, the schema gate, a 503 when the deployment is not configured, and the body shim. Tested in `apps/api/test/vercel.test.ts`. |
 | `apps/api/migrate.ts` | Applies `schema.sql` from your machine. Not needed for a first deploy — see [the schema](#the-schema) — and still the right tool for a schema change you want applied before the code that needs it goes live. |
-| `npm run build:vercel` | `build.ts --same-origin`: bakes `API_ORIGIN = ""` into the client so it calls `/api/...` on its own origin. |
+| `npm run build:vercel` | `build.ts --same-origin --out-dir dist`: bakes `API_ORIGIN = ""` into the client so it calls `/api/...` on its own origin, and writes it to `dist/` at the repository root -- the one path `outputDirectory` names. `--out-dir` resolves against the root, not the working directory, because npm runs a workspace script from inside that workspace and the platform may not. |
 
 ## Deploying
 
