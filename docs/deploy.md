@@ -20,7 +20,7 @@ still exercised by its tests; it simply has nothing to allow in this shape.
 
 | File | What it does |
 |---|---|
-| `vercel.json` | Build command, output directory, the `/api/*` rewrite, and the security headers that do not depend on the build. |
+| `vercel.json` | Framework (none), build command, output directory, the `/api/*` rewrite, and the security headers that do not depend on the build. Two entries there are load-bearing and non-obvious: `"framework": null`, because the platform otherwise finds Express in the dependencies, decides this is a Node server and looks for a `server.js` that does not exist; and `--workspace=@vaultify/web` on the build command, because npm takes a workspace from the environment when the command line does not name one. |
 | `api/index.ts` | The three lines Vercel's file-based routing needs. Vercel turns every file under `api/` into a function, so the logic lives elsewhere. |
 | `apps/api/src/vercel.ts` | The adapter: one app per instance, platform defaults, the schema gate, a 503 when the deployment is not configured, and the body shim. Tested in `apps/api/test/vercel.test.ts`. |
 | `apps/api/migrate.ts` | Applies `schema.sql` from your machine. Not needed for a first deploy — see [the schema](#the-schema) — and still the right tool for a schema change you want applied before the code that needs it goes live. |

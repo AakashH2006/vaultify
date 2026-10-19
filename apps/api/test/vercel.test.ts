@@ -331,6 +331,25 @@ describe("the platform configuration", () => {
   });
 
   /**
+   * The platform must not guess what this project is.
+   *
+   * It guessed once: it found Express in the dependencies, decided this was a
+   * Node server, and looked for app.js, index.js or server.js in the output
+   * directory -- which holds a static client and never had one. The same guess
+   * is what pointed the build at the api workspace. `framework: null` is the
+   * supported way to say "no framework", and it overrides the project setting,
+   * so the answer lives in the repository rather than in a dashboard nobody
+   * can see from here.
+   */
+  it("pins the framework to none", async () => {
+    const path = fileURLToPath(new URL("../../../vercel.json", import.meta.url));
+    const config = JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
+
+    assert.ok("framework" in config, "vercel.json must state the framework");
+    assert.equal(config.framework, null, "the framework must be null, not a preset");
+  });
+
+  /**
    * The build command has to name a script npm will actually find.
    *
    * This failed a real deployment. `npm run build:vercel` resolved to the root
