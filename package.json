@@ -17,7 +17,8 @@
     "dev": "npm run dev --workspace @vaultify/api",
     "web": "npm run dev --workspace @vaultify/web",
     "build": "npm run build --workspace @vaultify/web",
-    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build:vercel": "npm run build:vercel --workspace @vaultify/web",
+    "typecheck": "npm run typecheck --workspaces --if-present && tsc --noEmit -p api",
     "smoke": "npm run smoke --workspace @vaultify/api"
   }
 }

@@ -65,6 +65,22 @@ const ACCOUNT_COLUMNS = `
 /** Postgres error code for a unique-constraint violation. */
 const UNIQUE_VIOLATION = "23505";
 
+/**
+ * Advisory-lock key for the schema, so only one process applies it at a time.
+ *
+ * `schema.sql` is idempotent, which is not the same as concurrency-safe: two
+ * sessions running `create index if not exists` against the same table at the
+ * same moment can deadlock, and `create table if not exists` races can fail
+ * with a duplicate-relation error even though both callers wanted the same
+ * end state. One long-lived server never noticed, because there was only ever
+ * one of it. A serverless deployment can cold-start a dozen instances on the
+ * same burst of traffic, and every one of them calls migrate().
+ *
+ * Any constant works as long as nothing else in the database picks the same
+ * one; this is "vaultify.schema" with the high bit kept clear.
+ */
+const SCHEMA_LOCK_KEY = 0x7641_7531;
+
 export class PostgresStore implements Store {
   readonly #pool: pg.Pool;
 
@@ -77,10 +93,58 @@ export class PostgresStore implements Store {
     });
   }
 
-  /** Applies schema.sql. Idempotent; fine to call on every boot. */
+  readonly kind = "postgres" as const;
+
+  /** `select 1`, and nothing else: proof that the pool can reach the server. */
+  async ping(): Promise<void> {
+    await this.#pool.query("select 1");
+  }
+
+  /**
+   * Applies schema.sql. Idempotent and safe to call concurrently, so it is
+   * fine on every boot and on every cold start.
+   */
   async migrate(): Promise<void> {
-    const schemaPath = fileURLToPath(new URL("./schema.sql", import.meta.url));
-    await this.#pool.query(await readFile(schemaPath, "utf8"));
+    const sql = await this.#readSchema();
+    const client = await this.#pool.connect();
+
+    try {
+      await client.query("select pg_advisory_lock($1)", [SCHEMA_LOCK_KEY]);
+      try {
+        await client.query(sql);
+      } finally {
+        // Released explicitly rather than left to the session: this client goes
+        // back to a pool that may hand it to the next request, and a
+        // session-level advisory lock would ride along with it.
+        await client.query("select pg_advisory_unlock($1)", [SCHEMA_LOCK_KEY]);
+      }
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * schema.sql is read at runtime, which a bundler will not notice on its own.
+   *
+   * `new URL(..., import.meta.url)` is invisible to a dependency tracer, so on
+   * a platform that bundles the API into a function the file has to be listed
+   * as an asset to include -- `includeFiles` in vercel.json does that. If it
+   * ever stops being listed, the symptom is a cold start failing on ENOENT
+   * somewhere inside node:fs, so the error says what is actually wrong.
+   */
+  async #readSchema(): Promise<string> {
+    const path = fileURLToPath(new URL("./schema.sql", import.meta.url));
+
+    try {
+      return await readFile(path, "utf8");
+    } catch (cause) {
+      throw new Error(
+        `Could not read the schema at ${path}. If this is a bundled ` +
+          "deployment, the file has to be included as an asset: see the " +
+          "`includeFiles` entry for api/index.ts in vercel.json.",
+        { cause },
+      );
+    }
   }
 
   async createAccount(account: NewAccount): Promise<AccountRecord | null> {

@@ -55,6 +55,30 @@ it can derive anything, and it has no session yet.
 
 No authentication. Returns `{ "status": "ok", "version": 1 }`.
 
+Liveness only: it touches nothing, so it still answers while the database is
+down. That is the point of having both this and the next one.
+
+---
+
+### `GET /api/ready`
+
+No authentication. Readiness: the store answered a `select 1`.
+
+```jsonc
+// 200
+{ "status": "ready", "version": 1, "store": "postgres", "databaseUrlVariable": "POSTGRES_URL" }
+
+// 503 -- running, but the database is not answering
+{ "error": { "code": "store_unreachable", "message": "...", "store": "postgres",
+             "databaseUrlVariable": "POSTGRES_URL" } }
+```
+
+`databaseUrlVariable` is the *name* of the environment variable the connection
+string was read from, never the string: a deployment configured through a
+platform integration is otherwise indistinguishable from one configured by
+hand, and equally hard to debug. See
+**[docs/deploy.md](deploy.md)**.
+
 ---
 
 ### `POST /api/auth/register`

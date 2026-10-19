@@ -15,3 +15,6 @@ apps/*/.env
 
 # the coursework brief, kept locally but not published
 *.pdf
+
+# Vercel CLI: local link and build output.
+.vercel

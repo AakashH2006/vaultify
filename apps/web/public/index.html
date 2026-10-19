@@ -9,6 +9,16 @@
     <meta name="color-scheme" content="light dark" />
 
     <!--
+      The Content-Security-Policy, emitted by the build. A server should send it
+      as a header as well -- the dev server does, and `csp.txt` exists for that
+      -- but a static host whose headers are hand-written configuration cannot
+      keep up with a policy containing the import map's hash, so the page
+      carries its own copy. `frame-ancestors` has no effect in a meta element;
+      the host must send `X-Frame-Options: DENY` for that.
+    -->
+    <!--CSP_META-->
+
+    <!--
       No inline script and no inline style anywhere in this file. The one
       exception the platform forces on us is the import map below, which the
       HTML parser requires inline; the build allows it by SHA-256 hash in the

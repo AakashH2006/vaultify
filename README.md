@@ -5,7 +5,7 @@ browser; the master password never reaches the server, and the backend is a
 storage locker for ciphertext it cannot read.
 
 > **Status — complete, all 4 weeks.** Crypto core, API, web client and
-> hardening are built, typechecked and tested: **425 tests**, or 440 with
+> hardening are built, typechecked and tested: **437 tests**, or 452 with
 > Postgres. See [Roadmap](#roadmap) for what each week delivered and
 > [Still open](#still-open) for what it does not do.
 
@@ -18,7 +18,7 @@ native type stripping — there is no build step).
 
 ```bash
 npm install
-npm test          # 425 tests: crypto, TOTP, API, client, build, QR
+npm test          # 437 tests: crypto, TOTP, API, client, build, QR
 npm run demo      # the zero-knowledge flow, printed step by step
 ```
 
@@ -56,7 +56,8 @@ The schema applies itself on boot.
 
 ```bash
 npm run web                                             # builds, then serves on :5173
-VAULTIFY_API_ORIGIN=https://api.example.com npm run build   # for a real deployment
+VAULTIFY_API_ORIGIN=https://api.example.com npm run build   # API on its own domain
+npm run build:vercel                                        # API on the same domain
 ```
 
 The client has **zero runtime dependencies** and no bundler: Node strips the
@@ -72,6 +73,30 @@ To exercise a running API end to end over real HTTP:
 ```bash
 npm run smoke --workspace @vaultify/api
 ```
+
+### Deploying
+
+One Vercel project serves both halves from one domain -- the built client as
+static files, the Express app as a single function under `/api/*`:
+
+```bash
+npx vercel link && npx vercel env add JWT_SECRET production && npx vercel deploy --prod
+```
+
+Then attach a Postgres database in the dashboard and redeploy. That is the
+whole procedure: `JWT_SECRET` is the only variable to set by hand, because an
+attached database injects its own connection-string variable and the API reads
+whichever one is there, and the schema is applied by the first request each
+instance serves -- behind a Postgres advisory lock, so a burst of cold starts
+queues instead of colliding. `curl https://<domain>/api/ready` answers
+`{"status":"ready",...,"store":"postgres"}` once both halves are talking.
+
+Before the database is attached the client still deploys and runs -- the
+generator and the strength meter are local -- and `/api/*` answers
+`503 api_unconfigured` naming the variable it wants. Two things change on
+serverless that are worth knowing before you rely on them: the in-memory rate
+limiter stops being global, and the platform caps a request at 4.5 MB. All of
+it is in **[docs/deploy.md](docs/deploy.md)**.
 
 ---
 
@@ -218,11 +243,11 @@ docs/client.md            the client: build, CSP/SRI, auto-lock, merge, 2FA
 ## Testing
 
 ```bash
-npm test                                   # 425 tests, no infrastructure needed
+npm test                                   # 437 tests, no infrastructure needed
 
 docker compose up -d db                    # then, for the Postgres layer:
 TEST_DATABASE_URL=postgres://vaultify:vaultify@localhost:5432/vaultify npm test
-                                           # 440 tests
+                                           # 452 tests
 ```
 
 | Package | Tests |

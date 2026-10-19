@@ -32,6 +32,11 @@ export class MemoryStore implements Store {
   readonly #audit: Array<AuditEvent & { accountId: string }> = [];
   #nextRecoveryCodeId = 1;
 
+  readonly kind = "memory" as const;
+
+  /** Always reachable: it is this process. */
+  async ping(): Promise<void> {}
+
   async createAccount(account: NewAccount): Promise<AccountRecord | null> {
     if (this.#accounts.has(account.accountId)) return null;
 

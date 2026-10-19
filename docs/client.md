@@ -49,8 +49,14 @@ rather than reformatting, which is what keeps the line numbers honest.
 
 ```bash
 npm run build                                   # -> apps/web/dist
-VAULTIFY_API_ORIGIN=https://api.example.com npm run build
+VAULTIFY_API_ORIGIN=https://api.example.com npm run build   # API on its own domain
+npm run build:vercel                                        # API on the same domain
 ```
+
+`--same-origin` (what `build:vercel` passes) bakes an empty `API_ORIGIN` into
+the bundle, so the client calls `/api/...` on whatever host served it and
+`connect-src` falls back to `'self'` alone. See
+[docs/deploy.md](deploy.md).
 
 ### What the build produces for security
 
@@ -98,9 +104,16 @@ The attribute on the entry script is supported everywhere. Import-map
 integrity is Chromium 127+; browsers without it ignore the field and fall back
 to same-origin trust. Partial coverage, stated rather than overclaimed.
 
-`dist/csp.txt` is written next to the build. A production proxy should copy
-that file rather than restate the policy, so the hash cannot drift away from
-the bytes it covers.
+The policy is emitted in two places, because not every host can send it as a
+header. `dist/csp.txt` is written next to the build for a reverse proxy to
+copy, rather than having the policy restated by hand where the hash could
+drift away from the bytes it covers. And the page itself carries a
+`<meta http-equiv="Content-Security-Policy">`, declared before the import map
+so it applies to it — which is what a static host serves, where the response
+headers are committed configuration and could never keep up with a hash that
+changes with every byte of every module. `frame-ancestors` has no effect in a
+meta element, so a host served that way must send `X-Frame-Options: DENY`
+itself; `vercel.json` does.
 
 ---
 

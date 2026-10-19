@@ -103,6 +103,29 @@ export interface SessionRecord {
 }
 
 export interface Store {
+  /** A name for logs and `/api/ready`. Not a secret and not a connection string. */
+  readonly kind: "postgres" | "memory";
+
+  /**
+   * Cheapest round trip that proves the store is actually reachable.
+   *
+   * A deployment can be perfectly configured and still broken -- the wrong
+   * connection string, a database that has gone to sleep, a pooler refusing
+   * connections -- and none of that shows up until the first person tries to
+   * log in. `/api/ready` calls this so the failure is one request away instead
+   * of one registration away.
+   */
+  ping(): Promise<void>;
+
+  /**
+   * Applies the schema, if this store has one. Idempotent.
+   *
+   * Optional because the in-memory store has nothing to apply, and because the
+   * callers that need it -- `server.ts` on boot, the serverless adapter on a
+   * cold start -- are the only two places that should ever run DDL.
+   */
+  migrate?(): Promise<void>;
+
   /** Resolves to null when the account id is already taken. */
   createAccount(account: NewAccount): Promise<AccountRecord | null>;
   findAccount(accountId: string): Promise<AccountRecord | null>;

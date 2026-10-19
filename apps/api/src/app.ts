@@ -40,8 +40,40 @@ export function createApp({ config, store }: AppDeps): Express {
   // the vault field itself is checked exactly by the route schema.
   app.use(express.json({ limit: config.MAX_VAULT_BYTES + 64 * 1024 }));
 
+  // Liveness: the function booted and the config parsed. Deliberately touches
+  // nothing, so it answers during a database outage too.
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", version: 1 });
+  });
+
+  // Readiness: the store is reachable. This is the one call that tells a fresh
+  // deployment whether it will actually work, which is why it reports the
+  // variable the connection string came from -- a deployment configured
+  // through a platform integration is otherwise hard to tell apart from one
+  // configured by hand, and exactly as hard to debug.
+  app.get("/api/ready", async (_req, res) => {
+    try {
+      await store.ping();
+    } catch {
+      // The reason is not repeated to the caller: a connection error from pg
+      // carries the host, the port and sometimes the user.
+      res.status(503).json({
+        error: {
+          code: "store_unreachable",
+          message: "The API is running but cannot reach its database.",
+          store: store.kind,
+          databaseUrlVariable: config.databaseUrlVariable,
+        },
+      });
+      return;
+    }
+
+    res.json({
+      status: "ready",
+      version: 1,
+      store: store.kind,
+      databaseUrlVariable: config.databaseUrlVariable,
+    });
   });
 
   app.use("/api/auth", authRoutes({ store, tokens, config }));

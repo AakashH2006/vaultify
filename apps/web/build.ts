@@ -66,6 +66,11 @@ const VENDORED: Record<string, string> = {
 };
 
 export interface BuildOptions {
+  /**
+   * Origin the client will call. An empty string means same-origin -- the
+   * client and the API behind one domain, as a single Vercel project serves
+   * them -- and leaves `connect-src` with nothing but `'self'`.
+   */
   apiOrigin?: string;
   outDir?: string;
   /** Printed into the page and the import map so a stale cache is identifiable. */
@@ -162,7 +167,20 @@ export async function build(options: BuildOptions = {}): Promise<BuildResult> {
     `<script type="module" src="${APP_BASE}/main.js" ` +
     `integrity="${entryIntegrity}" crossorigin="anonymous"></script>`;
 
+  // The policy also goes into the page itself. On a static host the response
+  // headers are configuration, written by hand and committed -- and this policy
+  // carries the import map's hash, which changes with every byte of every
+  // module in the graph. A hand-copied header would be stale by the next commit,
+  // and a stale script-src hash means the import map is rejected and the client
+  // never starts. Emitted here it cannot drift: it is the same string the build
+  // just computed.
+  //
+  // `frame-ancestors` is ignored in a meta element, so a host served this way
+  // must still send `X-Frame-Options: DENY` (see vercel.json).
+  const cspMeta = `<meta http-equiv="Content-Security-Policy" content="${escapeHtml(csp)}" />`;
+
   const html = (await readFile(join(publicDir, "index.html"), "utf8"))
+    .replace("<!--CSP_META-->", cspMeta)
     .replace("<!--IMPORT_MAP-->", `<script type="importmap">${importMapText}</script>`)
     .replace("<!--ENTRY_SCRIPT-->", entryScript)
     .replace("<!--BUILD_ID-->", escapeHtml(buildId));
@@ -193,13 +211,17 @@ export async function build(options: BuildOptions = {}): Promise<BuildResult> {
  * execute still could not post a stolen vault key anywhere.
  */
 function policy(apiOrigin: string, importMapHash: string): string {
+  // Same-origin deployments pass an empty origin: `'self'` already allows the
+  // API, and an empty token would leave a stray double space in the directive.
+  const connect = ["'self'", apiOrigin, BREACH_API_ORIGIN].filter(Boolean).join(" ");
+
   return [
     "default-src 'none'",
     `script-src 'self' '${importMapHash}'`,
     "style-src 'self'",
     "img-src 'self' data:",
     "font-src 'self'",
-    `connect-src 'self' ${apiOrigin} ${BREACH_API_ORIGIN}`,
+    `connect-src ${connect}`,
     "form-action 'none'",
     "base-uri 'none'",
     "frame-ancestors 'none'",
@@ -281,10 +303,40 @@ function escapeHtml(value: string): string {
   );
 }
 
-// Run directly: `node build.ts`
+/**
+ * `--same-origin`, or `--api-origin <url>`.
+ *
+ * Returns undefined when neither is given, so VAULTIFY_API_ORIGIN and then the
+ * development default still apply. A flag exists alongside the environment
+ * variable because the same-origin value is the empty string, and setting a
+ * variable to empty differs between shells.
+ */
+function apiOriginFromArgv(args: string[]): string | undefined {
+  if (args.includes("--same-origin")) return "";
+
+  const inline = args.find((arg) => arg.startsWith("--api-origin="));
+  if (inline) return inline.slice("--api-origin=".length);
+
+  const flag = args.indexOf("--api-origin");
+  if (flag === -1) return undefined;
+
+  const value = args[flag + 1];
+  if (!value || value.startsWith("--")) {
+    throw new Error("--api-origin needs a value, e.g. --api-origin https://api.example.com");
+  }
+  return value;
+}
+
+// Run directly: `node build.ts [--same-origin | --api-origin <url>]`
 if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
-  const result = await build();
+  const apiOrigin = apiOriginFromArgv(process.argv.slice(2));
+  const result = await build({ apiOrigin });
   const kb = (result.bytes / 1024).toFixed(1);
+  const origin =
+    apiOrigin === ""
+      ? "same-origin"
+      : (apiOrigin ?? process.env.VAULTIFY_API_ORIGIN ?? "http://localhost:4000");
   console.log(`Built ${result.moduleCount} modules (${kb} kB) -> ${relative(repoRoot, result.outDir)}`);
+  console.log(`API origin:      ${origin}`);
   console.log(`Import map hash: ${result.importMapHash}`);
 }
